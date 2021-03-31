@@ -1,0 +1,26 @@
+name: release-please
+on:
+  push:
+    branches:
+      - master
+      # todo(gengjiawen) debugging thing
+      - feature/changelog
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: GoogleCloudPlatform/release-please-action@v2
+        id: release
+        with:
+          package-name: node-gyp
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: node
+          changelog-types: >
+              [{"type":"feat","section":"Features","hidden":false},
+                {"type":"fix","section":"Bug Fixes","hidden":false},
+                {"type":"gyp","section":"Core","hidden":false},
+                {"type":"lib","section":"Core","hidden":false},
+                {"type":"deps","section":"Core","hidden":false},
+                {"type":"doc","section":"Doc","hidden":false}]
+
+
