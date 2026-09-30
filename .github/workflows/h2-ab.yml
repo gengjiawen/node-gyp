@@ -1,0 +1,56 @@
+# EXPERIMENT: A/B HTTP/2 vs HTTP/1.1 for parallel header installs on Windows.
+# Not for merging.
+name: H2 A/B experiment
+on:
+  push:
+    branches: [ experiment/h2-ab ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: probe ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.x
+      - run: npm install
+      - run: node test/h2-probe.js
+
+  stress:
+    name: ${{ matrix.os }} h2=${{ matrix.h2 }} c=${{ matrix.concurrency }} ${{ matrix.shard }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm, windows-latest]
+        h2: ['1', '0']
+        concurrency: [5, 10]
+        shard: [1, 2]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.x
+      - run: npm install
+      - name: Stress
+        env:
+          NODE_GYP_NULL_LOGGER: 'true'
+          NODE_GYP_TEST_ALLOW_H2: ${{ matrix.h2 }}
+          CONCURRENCY: ${{ matrix.concurrency }}
+          BUDGET_MIN: '25'
+        run: node test/h2-stress.js
